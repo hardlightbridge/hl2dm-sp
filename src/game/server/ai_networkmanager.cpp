@@ -32,24 +32,18 @@
 // Increment this to force rebuilding of all networks
 #define	 AINET_VERSION_NUMBER	37
 
-// The shipped-graph checks below key on the retail game dirs; map this mod's folders onto them.
-static void GetShippedGameDir( char *pszOut, int nOutSize )
+// Retail game dir for the shipped-graph exceptions below, or "" for a map this mod's folder
+// (or custom/) provides, so custom maps keep the normal graph checks.
+static void GetShippedGameDir( const char *pszMapName, char *pszOut, int nOutSize )
 {
-	char szPath[MAX_PATH];
-	V_strncpy( szPath, CommandLine()->ParmValue( "-game", "hl2" ), sizeof( szPath ) );
-	V_StripTrailingSlash( szPath );
-	V_FileBase( szPath, pszOut, nOutSize );
-	Q_strlower( pszOut );
+	pszOut[0] = 0;
+	if ( filesystem->FileExists( CFmtStr( "maps/%s%s.bsp", pszMapName, GetPlatformExt() ), "MOD" ) )
+		return;
 
-	static const char *s_ModDirs[][2] = { { "mod_hl2", "hl2" }, { "mod_ep1", "episodic" }, { "mod_ep2", "ep2" }, { "mod_lostcoast", "lostcoast" } };
-	for ( int i = 0; i < ARRAYSIZE( s_ModDirs ); ++i )
-	{
-		if ( !V_stricmp( pszOut, s_ModDirs[i][0] ) )
-		{
-			V_strncpy( pszOut, s_ModDirs[i][1], nOutSize );
-			return;
-		}
-	}
+	if ( UTIL_GetModDir( pszOut, nOutSize ) )
+		Q_strlower( pszOut );
+	else
+		pszOut[0] = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -587,7 +581,7 @@ void CAI_NetworkManager::LoadNetworkGraph( void )
 		bool bOK = false;
 		
 		char szLoweredGameDir[256];
-		GetShippedGameDir( szLoweredGameDir, sizeof( szLoweredGameDir ) );
+		GetShippedGameDir( STRING( gpGlobals->mapname ), szLoweredGameDir, sizeof( szLoweredGameDir ) );
 
 		// hack for shipped ep1 and hl2 maps
 		// they were rebuilt a week after they were actually shipped so allow the slightly
@@ -997,7 +991,7 @@ bool CAI_NetworkManager::IsAIFileCurrent ( const char *szMapName )
 	
 	{
 		char szLoweredGameDir[256];
-		GetShippedGameDir( szLoweredGameDir, sizeof( szLoweredGameDir ) );
+		GetShippedGameDir( szMapName, szLoweredGameDir, sizeof( szLoweredGameDir ) );
 		
 		if ( !V_stricmp( szLoweredGameDir, "hl2" ) || !V_stricmp( szLoweredGameDir, "episodic" ) || !V_stricmp( szLoweredGameDir, "ep2" ) || !V_stricmp( szLoweredGameDir, "portal" ) || !V_stricmp( szLoweredGameDir, "lostcoast" )  || !V_stricmp( szLoweredGameDir, "hl1" ) )
 		{

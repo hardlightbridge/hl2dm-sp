@@ -316,6 +316,7 @@ bool UTIL_GetModDir( char *lpszTextOut, unsigned int nSize )
 		return false;
 
 	Q_strncpy( lpszTextOut, pGameDir, nSize );
+	Q_StripTrailingSlash( lpszTextOut );
 	if ( Q_strnchr( lpszTextOut, '/', nSize ) || Q_strnchr( lpszTextOut, '\\', nSize ) )
 	{
 		// Strip the last directory off (which will be our game dir)
@@ -324,6 +325,18 @@ bool UTIL_GetModDir( char *lpszTextOut, unsigned int nSize )
 		// Find the difference in string lengths and take that difference from the original string as the mod dir
 		int dirlen = Q_strlen( lpszTextOut );
 		Q_strncpy( lpszTextOut, pGameDir + dirlen, Q_strlen( pGameDir ) - dirlen + 1 );
+	}
+
+	// Callers compare against the retail game dirs; report this mod's folders under those names.
+	static const char *s_ModDirs[][2] = { { "mod_hl2", "hl2" }, { "mod_ep1", "episodic" }, { "mod_ep2", "ep2" }, { "mod_lostcoast", "lostcoast" } };
+	Q_StripTrailingSlash( lpszTextOut );
+	for ( int i = 0; i < ARRAYSIZE( s_ModDirs ); ++i )
+	{
+		if ( !Q_stricmp( lpszTextOut, s_ModDirs[i][0] ) )
+		{
+			Q_strncpy( lpszTextOut, s_ModDirs[i][1], nSize );
+			break;
+		}
 	}
 
 	return true;

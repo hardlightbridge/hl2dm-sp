@@ -344,7 +344,8 @@ void CAchievementMgr::PostInit()
 	// get current game dir
 	const char *pGameDir = COM_GetModDirectory();
 
-	CBaseAchievementHelper *pAchievementHelper = CBaseAchievementHelper::s_pFirst;
+	// These are the retail games' achievements; a mod must not award them, so none are registered.
+	CBaseAchievementHelper *pAchievementHelper = NULL;
 	while ( pAchievementHelper )
 	{
 		// create and initialize all achievements and insert them in our map

@@ -119,7 +119,6 @@ public:
 				int iAchievementID = pRestore->ReadShort();
 				// find the corresponding achievement object
 				CBaseAchievement *pAchievement = pAchievementMgr->GetAchievementByID( iAchievementID );				
-				Assert( pAchievement );		// It's a bug if we don't understand this achievement
 				if ( pAchievement )
 				{
 					// read achievement data

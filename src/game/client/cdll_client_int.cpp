@@ -2613,16 +2613,36 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 	if ( gpGlobals->maxClients == 1 && params.fromserver && params.entchannel == CHAN_VOICE &&
 		 params.pSfx && params.soundsource == engine->GetLocalPlayer() )
 	{
+		// Sounds whose latest start went to their own channel; stop/change messages follow them there.
 		static CUtlRBTree< const CSfxTable * > s_LayeredSounds( 0, 0, DefLessFunc( const CSfxTable * ) );
 
-		bool bStart = !( params.flags & ( SND_STOP | SND_CHANGE_VOL | SND_CHANGE_PITCH ) );
-		if ( bStart && ( params.flags & SND_DELAY ) )
+		int iLayered = s_LayeredSounds.Find( params.pSfx );
+		bool bLayer;
+		if ( params.flags & SND_STOP )
 		{
+			bLayer = ( iLayered != s_LayeredSounds.InvalidIndex() );
+			if ( bLayer )
+				s_LayeredSounds.RemoveAt( iLayered );
+		}
+		else if ( params.flags & SND_DELAY )
+		{
+			// A scene start, possibly with SND_CHANGE_PITCH (which starts the sound if none matches).
+			bLayer = true;
 			s_LayeredSounds.InsertIfNotFound( params.pSfx );
 		}
+		else if ( params.flags & ( SND_CHANGE_VOL | SND_CHANGE_PITCH ) )
+		{
+			bLayer = ( iLayered != s_LayeredSounds.InvalidIndex() );
+		}
+		else
+		{
+			// An ordinary start plays on CHAN_VOICE, so its later messages must stay there too.
+			bLayer = false;
+			if ( iLayered != s_LayeredSounds.InvalidIndex() )
+				s_LayeredSounds.RemoveAt( iLayered );
+		}
 
-		if ( s_LayeredSounds.Find( params.pSfx ) != s_LayeredSounds.InvalidIndex() &&
-			 ( !bStart || ( params.flags & SND_DELAY ) ) )
+		if ( bLayer )
 		{
 			unsigned int nHash = (unsigned int)( ( (uint64)(uintp)params.pSfx * 0x9E3779B97F4A7C15ull ) >> 54 );	// 10 bits
 			params.entchannel = CHAN_USER_BASE + (int)nHash;
