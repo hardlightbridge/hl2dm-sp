@@ -3924,7 +3924,8 @@ void CAI_BaseNPC::RunTask( const Task_t *pTask )
 			//
 			AutoMovement( );
 
-			if ( IsSequenceFinished() )
+			// Single-frame poses have no cycle to advance, but must not block script handoffs.
+			if ( IsSequenceFinished() || SequenceDuration() == 0.0f )
 			{
 				// Check to see if we are done with the action sequence.
 				if ( m_hCine->FinishedActionSequence( this ) )
