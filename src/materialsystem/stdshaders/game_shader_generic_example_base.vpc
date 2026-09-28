@@ -53,6 +53,7 @@ $Project
 
 		$File	"sdk_bloom.cpp"
 		$File	"sdk_screenspace_general.cpp"
+		$File	"psconst_patch.cpp"
 	}
 
 	$Folder	"Header Files"
