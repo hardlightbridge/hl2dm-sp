@@ -23,8 +23,6 @@ podman. Inside `src`, run `./buildallprojects release`.
 
 ## Run
 
-Steam must be running and logged in:
-
 ```bat
 <Half-Life 2: Deathmatch>\hl2mp_win64.exe -game "<checkout>\game\mod_ep2"
 ```
