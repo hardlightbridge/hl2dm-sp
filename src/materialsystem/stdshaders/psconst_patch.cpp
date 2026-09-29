@@ -8,6 +8,8 @@ static struct PsConstPatch_t
 	PsConstPatch_t()
 	{
 		HMODULE hApi = GetModuleHandleA( "shaderapidx9.dll" );
+		if ( !hApi )
+			hApi = GetModuleHandleA( "shaderapivk.dll" );	// -vulkan
 		CreateInterfaceFn pfn = hApi ? (CreateInterfaceFn)GetProcAddress( hApi, "CreateInterface" ) : NULL;
 		char **pMgr = pfn ? (char **)pfn( SHADER_DEVICE_MGR_INTERFACE_VERSION, NULL ) : NULL;
 		for ( int s = 0; pMgr && s < 0x400 / (int)sizeof( void * ); ++s )
