@@ -741,6 +741,7 @@ $Project
 		$File	"c_world.h"
 		$File	"cbase.h"
 		$File	"cdll_client_int.h"
+		$File	"sound_channel_patch.h"
 		$File	"cdll_util.h"
 		$File	"cl_animevent.h"
 		$File	"cl_mat_stub.h"

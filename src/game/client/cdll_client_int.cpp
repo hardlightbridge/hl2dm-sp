@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include <crtmemdebug.h>
 #include "soundstartparams.h"
+#include "sound_channel_patch.h"
 #include "vgui_int.h"
 #include "clientmode.h"
 #include "iinput.h"
@@ -871,6 +872,8 @@ ISourceVirtualReality *g_pSourceVR = NULL;
 // Input  : engineFactory - 
 // Output : int
 //-----------------------------------------------------------------------------
+static bool s_bDelayedSoundChannelsPatched = false;
+
 int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physicsFactory, CGlobalVarsBase *pGlobals )
 {
 	InitCRTMemDebug();
@@ -879,6 +882,7 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	// Answers "which client.dll did the engine load?" in a -condebug log (-dev enables it).
 	const char *pGameDir = CommandLine()->ParmValue( "-game", "(default)" );
 	DevMsg( "MOD CLIENT BUILD " __DATE__ " " __TIME__ " - game dir '%s'\n", pGameDir );
+	s_bDelayedSoundChannelsPatched = PatchDelayedSoundChannels();
 
 
 #ifdef SIXENSE
@@ -2608,9 +2612,9 @@ void CHLClient::ClientAdjustStartSoundParams( StartSoundParams_t& params )
 		pEntity->ClientAdjustStartSoundParams( params );
 	}
 #else
-	// The engine frees a channel when the next sound on the same entity/channel starts, cutting off
-	// layered scene sounds on the player. Give each delayed player voice sound its own channel.
-	if ( gpGlobals->maxClients == 1 && params.fromserver && params.entchannel == CHAN_VOICE &&
+	// Fallback for engines we cannot patch: keep delayed player voice layers on separate channels.
+	// A patched engine preserves the real CHAN_VOICE identity (including NPC lip sync/protection).
+	if ( !s_bDelayedSoundChannelsPatched && gpGlobals->maxClients == 1 && params.fromserver && params.entchannel == CHAN_VOICE &&
 		 params.pSfx && params.soundsource == engine->GetLocalPlayer() )
 	{
 		// Sounds whose latest start went to their own channel; stop/change messages follow them there.
