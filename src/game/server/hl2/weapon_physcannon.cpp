@@ -2772,15 +2772,19 @@ bool CGrabController::UpdateObject( CBasePlayer *pPlayer, float flError )
 
 	
 	
-	// Now clamp a sphere of object radius at end to the player's bbox
-	Vector radial = physcollision->CollideGetExtent( pPhys->GetCollide(), vec3_origin, pEntity->GetAbsAngles(), -forward );
-	Vector vecMins, vecMaxs;
-	physcollision->CollideGetAABB( &vecMins, &vecMaxs, pPhys->GetCollide(), vec3_origin, pEntity->GetAbsAngles() );
-	// CollideGetExtent is the support point from the collide's local origin (see the tanPts/bottomPoint
-	// callers) and not a half-extent, so for a model whose origin sits at one end, it reports 0.
+	// Sphere objects (e.g. combine balls) have a radius but no collision mesh.
+	float objectRadius = pPhys->GetSphereRadius();
+	const CPhysCollide *pCollide = pPhys->GetCollide();
+	if ( pCollide )
+	{
+		Vector radial = physcollision->CollideGetExtent( pCollide, vec3_origin, pEntity->GetAbsAngles(), -forward );
+		Vector vecMins, vecMaxs;
+		physcollision->CollideGetAABB( &vecMins, &vecMaxs, pCollide, vec3_origin, pEntity->GetAbsAngles() );
+		objectRadius = fabs( DotProduct( forward, radial - ( vecMins + vecMaxs ) * 0.5f ) );
+	}
 	Vector player2d = pPlayer->CollisionProp()->OBBMaxs();
 	float playerRadius = player2d.Length2D();
-	float radius = playerRadius + fabs( DotProduct( forward, radial - ( vecMins + vecMaxs ) * 0.5f ) );
+	float radius = playerRadius + objectRadius;
 
 	float distance = 24 + ( radius * 2.0f );
 
