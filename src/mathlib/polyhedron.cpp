@@ -894,6 +894,7 @@ CPolyhedron *ClipLinkedGeometry( GeneratePolyhedronFromPlanes_UnorderedPolygonLL
 	GeneratePolyhedronFromPlanes_UnorderedPolygonLL	*pDeadPolygonCollection = NULL;
 	GeneratePolyhedronFromPlanes_LineLL				*pDeadLineLinkCollection = NULL;
 
+	bool bRepairWalkAborted = false;
 
 	for( int iCurrentPlane = 0; iCurrentPlane != iPlaneCount; ++iCurrentPlane )
 	{
@@ -1459,8 +1460,20 @@ CPolyhedron *ClipLinkedGeometry( GeneratePolyhedronFromPlanes_UnorderedPolygonLL
 			//			If the line is on-plane. Skip the bridge line making, but set links to the new polygon as if we'd just created the bridge
 			//		3. Once we follow a line back to the point where we started, we should be all done.
 
+			// this has been broken for 15 years valve
+			int iRepairWalkPassLimit = 16;
+			for( GeneratePolyhedronFromPlanes_UnorderedLineLL *pLineWalkForLimit = pAllLines; pLineWalkForLimit != NULL; pLineWalkForLimit = pLineWalkForLimit->pNext )
+				iRepairWalkPassLimit += 2;
+			int iRepairWalkPasses = 0;
+
 			do
 			{
+				if( ++iRepairWalkPasses > iRepairWalkPassLimit )
+				{
+					bRepairWalkAborted = true;
+					break;
+				}
+
 				if( pWorkPolygon->bMissingASide )
 				{
 					//during the cutting process we made sure that the head line link was going clockwise into the missing area
@@ -1484,6 +1497,16 @@ CPolyhedron *ClipLinkedGeometry( GeneratePolyhedronFromPlanes_UnorderedPolygonLL
 					}
 #endif
 
+					GeneratePolyhedronFromPlanes_Point *pJoinPoints[2];
+					pJoinPoints[0] = pGapLines[0]->pLine->pPoints[pGapLines[0]->iReferenceIndex];
+					pJoinPoints[1] = pGapLines[1]->pLine->pPoints[1 - pGapLines[1]->iReferenceIndex];
+					if( pJoinPoints[0] == pJoinPoints[1] )
+					{
+						// reject
+						bRepairWalkAborted = true;
+						break;
+					}
+
 					GeneratePolyhedronFromPlanes_Line *pJoinLine = (GeneratePolyhedronFromPlanes_Line *)stackalloc( sizeof( GeneratePolyhedronFromPlanes_Line ) );
 					{
 						//before we forget, add this line to the active list
@@ -1498,8 +1521,8 @@ CPolyhedron *ClipLinkedGeometry( GeneratePolyhedronFromPlanes_UnorderedPolygonLL
 					}
 
 
-					pJoinLine->pPoints[0] = pGapLines[0]->pLine->pPoints[pGapLines[0]->iReferenceIndex];
-					pJoinLine->pPoints[1] = pGapLines[1]->pLine->pPoints[1 - pGapLines[1]->iReferenceIndex];
+					pJoinLine->pPoints[0] = pJoinPoints[0];
+					pJoinLine->pPoints[1] = pJoinPoints[1];
 
 					pJoinLine->pPolygons[0] = pNewPolygon;
 					pJoinLine->pPolygons[1] = pWorkPolygon;
@@ -1667,6 +1690,9 @@ CPolyhedron *ClipLinkedGeometry( GeneratePolyhedronFromPlanes_UnorderedPolygonLL
 					Assert_DumpPolyhedron( pWorkPolygon != pLastWorkPolygon );
 				}
 			} while( pWorkPoint != pStartPoint );
+
+			if( bRepairWalkAborted )
+				break;
 		}
 
 #ifdef _DEBUG
@@ -1703,6 +1729,12 @@ CPolyhedron *ClipLinkedGeometry( GeneratePolyhedronFromPlanes_UnorderedPolygonLL
 	}
 	DebugCutHistory.RemoveAll();
 #endif
+
+	if( bRepairWalkAborted )
+	{
+		DevWarning( "ClipLinkedGeometry: polygon repair walk did not terminate, dropping this brush's polyhedron.\n" );
+		return NULL;
+	}
 
 	return ConvertLinkedGeometryToPolyhedron( pAllPolygons, pAllLines, pAllPoints, bUseTemporaryMemory );
 }
