@@ -2,6 +2,9 @@
 // engine app's cloud copy. Must come before stuffcmds, or +quit can exit first.
 cl_cloud_settings 0
 
+//disableish client request limits for SP
+sv_quota_stringcmdspersecond 20000
+
 // Stuff the command line: the engine queues "exec valve.rc" at startup and nothing
 // else runs stuffcmds, so +commands like +map would otherwise never execute.
 stuffcmds
